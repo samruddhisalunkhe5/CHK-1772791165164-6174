@@ -1,18 +1,11 @@
-const mongoose = require('mongoose')
+import mongoose from 'mongoose'
 
-const projectSchema = new mongoose.Schema({
-  projectName: { type: String, required: true },
+const companySchema = new mongoose.Schema({
+  companyName: { type: String, required: true },
   companyEmail: { type: String, required: true },
-  domain: { type: String },
-  createdBy: { type: String },
-  projectToken: { type: String, required: true, unique: true } 
+  domain: { type: String, required: true },
+  adminEmail: { type: String, required: true }
 })
 
-projectSchema.pre('save', function(next) {
-  if (!this.projectToken) {
-    this.projectToken = Math.random().toString(36).substring(2, 10).toUpperCase()
-  }
-  next()
-})
-
-module.exports = mongoose.model("Project", projectSchema)
+const Company = mongoose.model('Company', companySchema)
+export default Company

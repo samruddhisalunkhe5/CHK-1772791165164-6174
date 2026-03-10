@@ -1,18 +1,11 @@
-import mongoose from 'mongoose'
-import crypto from 'crypto'
+import mongoose from "mongoose";
 
 const projectSchema = new mongoose.Schema({
   projectName: { type: String, required: true },
   companyEmail: { type: String, required: true },
-  domain: { type: String },
-  createdBy: { type: String },
-  projectId: { 
-    type: String, 
-    required: true, 
-    unique: true, 
-    default: () => crypto.randomBytes(4).toString('hex').toUpperCase() 
-  }
-}, { timestamps: true })
+  domain: { type: String, required: true },
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "Admin", required: true },
+  projectId: { type: String, required: true, unique: true } // alphanumeric ID
+}, { timestamps: true });
 
-const Project = mongoose.models.Project || mongoose.model('Project', projectSchema);
-export default Project;
+export default mongoose.model("Project", projectSchema);

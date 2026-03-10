@@ -1,6 +1,7 @@
 import express, { application } from 'express'
 import bodyParser from 'body-parser'
 import cors from 'cors'
+import crypto from "crypto";
 import mongoose from 'mongoose'
 import bcrypt from 'bcrypt'
 import Admin from '../models/Admin.js';
@@ -103,23 +104,63 @@ router.get('/get-companies',async(req,res)=>{
   } 
 }) 
 
+function generateRandomString(length = 8) {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  return [...Array(length)]
+    .map(() => chars[Math.floor(Math.random() * chars.length)])
+    .join('');
+}
 
-router.post('/add-project', async (req, res) => {
+// Add Project
+router.post("/add-project", async (req, res) => {
   try {
-    const { projectName, companyEmail, domain, createdBy } = req.body
-    if (!projectName || !companyEmail) {
-      return res.status(400).json({ status: false, message: 'projectName and companyEmail are required' })
+    const { projectName, companyEmail, domain, createdBy } = req.body;
+
+    if (!projectName || !companyEmail || !domain || !createdBy) {
+      return res.status(400).json({ status: false, message: "All fields are required" });
     }
-    const project = new Project({ projectName, companyEmail, domain, createdBy })
-    await project.save()
-    res.json({ status: true, message: 'Project created successfully!', projectId: project.projectId })
+
+    // Get Admin ObjectId from email
+    const admin = await Admin.findOne({ Adminemail: createdBy });
+    if (!admin) return res.status(400).json({ status: false, message: "Admin not found" });
+
+    // Generate unique projectId
+    let projectId = generateRandomString(8);
+    while (await Project.findOne({ projectId })) {
+      projectId = generateRandomString(8);
+    }
+
+    const project = new Project({
+      projectName,
+      companyEmail,
+      domain,
+      createdBy: admin._id,
+      projectId
+    });
+
+    await project.save();
+
+    res.json({
+      status: true,
+      message: "Project created successfully!",
+      projectId
+    });
 
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ status: false, message: 'Internal server error' })
+    console.error("Add Project Error:", err);
+    res.status(500).json({ status: false, message: "Internal server error" });
   }
-})
-
+});
+router.get("/get-projects", async (req, res) => {
+  try {
+    const projects = await Project.find()
+      .populate("createdBy", "AdminName Adminemail");
+    res.json({ status: true, projects });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ status: false, message: "Internal server error" });
+  }
+});
 
 router.post('/admin-add-manager', async (req, res) => {
   try {

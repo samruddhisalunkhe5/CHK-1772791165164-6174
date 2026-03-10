@@ -3,15 +3,16 @@ import axios from "axios"
 import toast, { Toaster } from "react-hot-toast"
 import { useNavigate } from "react-router-dom"
 
-export default function AdminAuth() {
+export default function ManagerAuth() {
   const navigate = useNavigate()
-
   const [isLogin, setIsLogin] = useState(true)
   const [form, setForm] = useState({
-    AdminName: "",
-    Adminemail: "",
-    password: ""
-  });
+    fullName: "",
+    email: "",
+    password: "",
+    projectId: "",
+    registrationToken: ""
+  })
   const [errors, setErrors] = useState({})
 
   const handleChange = (e) => {
@@ -20,16 +21,17 @@ export default function AdminAuth() {
 
   const validate = () => {
     const newErrors = {}
-    if (!form.Adminemail) newErrors.Adminemail = "Email is required"
-    else if (!/\S+@\S+\.\S+/.test(form.Adminemail))
-      newErrors.Adminemail = "Email is invalid"
+    if (!form.email) newErrors.email = "Email is required"
+    else if (!/\S+@\S+\.\S+/.test(form.email)) newErrors.email = "Email is invalid"
 
     if (!form.password) newErrors.password = "Password is required"
-    else if (form.password.length < 6)
-      newErrors.password = "Password must be at least 6 characters"
+    else if (form.password.length < 6) newErrors.password = "Password must be at least 6 characters"
 
-    if (!isLogin && !form.AdminName)
-      newErrors.AdminName = "Admin name is required"
+    if (!isLogin) {
+      if (!form.fullName) newErrors.fullName = "Full name is required"
+      if (!form.projectId) newErrors.projectId = "Project ID is required"
+      if (!form.registrationToken) newErrors.registrationToken = "Registration token is required"
+    }
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -37,69 +39,46 @@ export default function AdminAuth() {
 
   const handleRegister = async () => {
     if (!validate()) return
-
     try {
-      const res = await axios.post(
-        "http://localhost:6087/api/admin/admin-register",
-        form
-      )
+      const res = await axios.post("http://localhost:6087/api/manager/register-manager", form)
       if (res.data.status) {
-        toast.success(res.data.message);
-        setForm({ AdminName: "", Adminemail: "", password: "" });
+        toast.success(res.data.message)
+        setForm({ fullName: "", email: "", password: "", projectId: "", registrationToken: "" })
         setIsLogin(true)
       } else {
         toast.error(res.data.message)
       }
-    } catch (error) {
-      console.error(error)
-      toast.error(error?.response?.data?.message || "Registration failed")
+    } catch (err) {
+      console.error(err)
+      toast.error(err?.response?.data?.message || "Registration failed")
     }
   }
 
   const handleLogin = async () => {
     if (!validate()) return
-
     try {
-      const res = await axios.post(
-        "http://localhost:6087/api/admin/admin-login",
-        {
-          Adminemail: form.Adminemail,
-          password: form.password
-        }
-      )
-
+      const res = await axios.post("http://localhost:6087/api/manager/login-manager", form)
       if (res.data.status) {
-        toast.success(res.data.message);
-        navigate("/create-company", { state: { adminEmail: form.Adminemail } })
+        toast.success(res.data.message)
+        navigate("/dashboard", { state: { managerEmail: form.email, projectId: form.projectId } })
       } else {
         toast.error(res.data.message)
       }
-    } catch (error) {
-      console.error(error)
-      toast.error(error?.response?.data?.message || "Login failed")
+    } catch (err) {
+      console.error(err)
+      toast.error(err?.response?.data?.message || "Login failed")
     }
-  };
+  }
 
   return (
     <div className="authContainer">
       <Toaster position="top-center" reverseOrder={false} />
-
       <div className="authCard">
-        <h1>Admin Portal</h1>
+        <h1>Manager Portal</h1>
 
         <div className="toggle">
-          <button
-            className={isLogin ? "active" : ""}
-            onClick={() => setIsLogin(true)}
-          >
-            Login
-          </button>
-          <button
-            className={!isLogin ? "active" : ""}
-            onClick={() => setIsLogin(false)}
-          >
-            Signup
-          </button>
+          <button className={isLogin ? "active" : ""} onClick={() => setIsLogin(true)}>Login</button>
+          <button className={!isLogin ? "active" : ""} onClick={() => setIsLogin(false)}>Signup</button>
         </div>
 
         <div className="formInputs">
@@ -107,25 +86,41 @@ export default function AdminAuth() {
             <>
               <input
                 type="text"
-                name="AdminName"
-                placeholder="Admin Name"
-                value={form.AdminName}
+                name="fullName"
+                placeholder="Full Name"
+                value={form.fullName}
                 onChange={handleChange}
               />
-              {errors.AdminName && (
-                <span className="error">{errors.AdminName}</span>
-              )}
+              {errors.fullName && <span className="error">{errors.fullName}</span>}
+
+              <input
+                type="text"
+                name="projectId"
+                placeholder="Project ID"
+                value={form.projectId}
+                onChange={handleChange}
+              />
+              {errors.projectId && <span className="error">{errors.projectId}</span>}
+
+              <input
+                type="text"
+                name="registrationToken"
+                placeholder="Registration Token"
+                value={form.registrationToken}
+                onChange={handleChange}
+              />
+              {errors.registrationToken && <span className="error">{errors.registrationToken}</span>}
             </>
           )}
 
           <input
             type="email"
-            name="Adminemail"
-            placeholder="Admin Email"
-            value={form.Adminemail}
+            name="email"
+            placeholder="Email"
+            value={form.email}
             onChange={handleChange}
           />
-          {errors.Adminemail && <span className="error">{errors.Adminemail}</span>}
+          {errors.email && <span className="error">{errors.email}</span>}
 
           <input
             type="password"
@@ -231,5 +226,5 @@ export default function AdminAuth() {
         }
       `}</style>
     </div>
-  );
+  )
 }

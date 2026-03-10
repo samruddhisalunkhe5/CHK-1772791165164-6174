@@ -15,7 +15,7 @@ export default function Role() {
           <button>Select</button>
         </div>
 
-        <div className="card manager">
+        <div className="card manager" onClick={() => navigate("/manager")}>
           <h2>Manager</h2>
           <p>Oversee projects and coordinate team members.</p>
           <button>Select</button>

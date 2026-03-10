@@ -1,22 +1,22 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
-import toast, { Toaster } from "react-hot-toast";
-import { useLocation, useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react"
+import axios from "axios"
+import toast, { Toaster } from "react-hot-toast"
+import { useLocation, useNavigate } from "react-router-dom"
 
 
 export default function CompanyCreate() {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const [adminEmail, setAdminEmail] = useState("");
+  const location = useLocation()
+  const navigate = useNavigate()
+  const [adminEmail, setAdminEmail] = useState("")
 
   const [form, setForm] = useState({
     companyName: "",
     companyEmail: "",
     domain: "",
-    adminEmail: "" // <-- include adminEmail here
-  });
+    adminEmail: "" 
+  })
 
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState({})
 
   useEffect(() => {
     if (!location.state?.adminEmail) {
@@ -42,15 +42,16 @@ export default function CompanyCreate() {
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  };
+  }
 
   const handleAddCompany = async () => {
     if (!validate()) return;
     try {
       const res = await axios.post("http://localhost:6087/api/admin/add-company", form);
       if (res.data.status) {
-        toast.success(res.data.message);
-        setForm(prev => ({ ...prev, companyName: "", companyEmail: "", domain: "" }));
+        toast.success(res.data.message)
+        setForm(prev => ({ ...prev, companyName: "", companyEmail: "", domain: "" }))
+         navigate("/admin-dashboard", { state: { adminEmail } })
       } else {
         toast.error(res.data.message);
       }
@@ -58,7 +59,7 @@ export default function CompanyCreate() {
       console.error(error);
       toast.error(error?.response?.data?.message || "Failed to add company");
     }
-  };
+  }
 
   return (
     <div className="authContainer">
@@ -92,7 +93,7 @@ export default function CompanyCreate() {
             onChange={handleChange}
           />
 
-          {/* Admin Email is hidden */}
+          {}
           <input type="hidden" name="adminEmail" value={form.adminEmail} />
 
           <button onClick={handleAddCompany}>Add Company</button>
@@ -165,5 +166,5 @@ export default function CompanyCreate() {
         }
       `}</style>
     </div>
-  );
+  )
 }

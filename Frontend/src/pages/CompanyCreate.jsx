@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import toast, { Toaster } from "react-hot-toast";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useNavigate } from "react-router-dom";
+
 
 export default function CompanyCreate() {
   const location = useLocation();

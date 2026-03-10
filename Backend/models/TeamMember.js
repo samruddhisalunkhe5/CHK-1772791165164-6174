@@ -1,14 +1,12 @@
-import mongoose from 'mongoose'
+const mongoose = require('mongoose')
 
 const teamMemberSchema = new mongoose.Schema({
   fullName: { type: String },
   email: { type: String, required: true },
-  password: { type: String },
-  projectId: { type: String, required: true }, 
-  task: { type: String },
   mobileNo: { type: String },
+  password: { type: String },
+  projectId: { type: String, ref: 'Project', required: true },
   isRegistered: { type: Boolean, default: false }
-}, { timestamps: true })
+})
 
-const TeamMember = mongoose.models.TeamMember || mongoose.model('TeamMember', teamMemberSchema)
-export default TeamMember
+module.exports = mongoose.model('TeamMember', teamMemberSchema)

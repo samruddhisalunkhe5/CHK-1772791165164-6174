@@ -81,18 +81,16 @@ router.post('/member-login', async (req, res) => {
 
 router.put('/update-task-status', async (req, res) => {
   try {
-
-    const { projectId, status } = req.body
-
-    if (!projectId || !status) {
+    const { taskId, status } = req.body
+    if (!taskId || !status) {
       return res.status(400).json({
         status: false,
-        message: 'projectId and status required'
+        message: 'TaskId  and status required'
       })
     }
 
     const task = await Task.findByIdAndUpdate(
-      projectId,
+      taskId,
       { status },
       { new: true }
     )

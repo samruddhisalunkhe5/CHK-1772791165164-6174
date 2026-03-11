@@ -93,14 +93,11 @@ router.post('/manager-add-member', async (req, res) => {
         message: 'Project not found'
       })
     }
-
-    // check member
     let member = await TeamMember.findOne({
       email: memberEmail,
       projectId
     })
 
-    // create member if not exists
     if (!member) {
 
       member = new TeamMember({

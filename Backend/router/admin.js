@@ -110,7 +110,6 @@ function generateRandomString(length = 8) {
     .map(() => chars[Math.floor(Math.random() * chars.length)])
     .join('');
 }
-
 router.post("/add-project", async (req, res) => {
   try {
     const { projectName, companyEmail, domain, createdBy } = req.body;
@@ -119,10 +118,8 @@ router.post("/add-project", async (req, res) => {
       return res.status(400).json({ status: false, message: "All fields are required" });
     }
 
-  
     const admin = await Admin.findOne({ Adminemail: createdBy });
     if (!admin) return res.status(400).json({ status: false, message: "Admin not found" });
-
 
     let projectId = generateRandomString(8);
     while (await Project.findOne({ projectId })) {
@@ -133,7 +130,7 @@ router.post("/add-project", async (req, res) => {
       projectName,
       companyEmail,
       domain,
-      createdBy: admin._id,
+      createdBy: admin._id, // store admin _id, not object
       projectId
     });
 

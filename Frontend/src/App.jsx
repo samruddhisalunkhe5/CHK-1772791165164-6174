@@ -6,7 +6,8 @@ import Role from "./Components/Role.jsx"
 import CompanyCreate from './pages/CompanyCreate.jsx'
 import AdminDashboard from "./pages/AdminDashboard"
 import ManagerAuth from './pages/ManagerAuth.jsx'
-import MemberAuth from './pages/MemberAuth.jsx'  // import your member auth page
+import MemberAuth from './pages/MemberAuth.jsx'
+import ManagerDashboard from './pages/ManagerDashboard.jsx'
 
 function App() {
   const [count, setCount] = useState(0)
@@ -20,7 +21,10 @@ function App() {
           <Route path="/create-company" element={<CompanyCreate />} />
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
           <Route path="/manager" element={<ManagerAuth/>} />
-          <Route path="/member" element={<MemberAuth/>} />  {/* Member auth route */}
+          <Route path="/member" element={<MemberAuth/>} /> 
+          <Route path="/manager-dashboard" element={<ManagerDashboard />}
+           />
+          
         </Routes>
       </BrowserRouter>
     </>

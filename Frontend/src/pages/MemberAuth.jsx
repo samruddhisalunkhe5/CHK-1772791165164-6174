@@ -1,115 +1,82 @@
-import React, { useState } from "react"
-import axios from "axios"
-import toast, { Toaster } from "react-hot-toast"
-import { useNavigate } from "react-router-dom"
+import { useState } from 'react';
+import axios from 'axios';
 
 export default function MemberAuth() {
-  const navigate = useNavigate()
-  const [isLogin, setIsLogin] = useState(true)
-  const [form, setForm] = useState({
-    fullName: "",
-    email: "",
-    password: "",
-    mobileNo: "",
-    projectId: "",
-  })
-  const [errors, setErrors] = useState({})
+  const [isLogin, setIsLogin] = useState(true);
+  const [formData, setFormData] = useState({
+    fullName: '',
+    email: '',
+    password: '',
+    mobileNo: '',
+    projectId: ''
+  });
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value })
-  }
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
-  const validate = () => {
-    const newErrors = {}
-    if (!form.email) newErrors.email = "Email is required"
-    else if (!/\S+@\S+\.\S+/.test(form.email)) newErrors.email = "Email is invalid"
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
 
-    if (!form.password) newErrors.password = "Password is required"
-    else if (form.password.length < 6) newErrors.password = "Password must be at least 6 characters"
-
-    if (!isLogin) {
-      if (!form.fullName) newErrors.fullName = "Full name is required"
-      if (!form.projectId) newErrors.projectId = "Project ID is required"
-      if (!form.mobileNo) newErrors.mobileNo = "Mobile number is required"
-    }
-
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
-
-  const handleRegister = async () => {
-    if (!validate()) return
     try {
-      const res = await axios.post("http://localhost:6087/api/member/member-signup", form)
-      if (res.data.status) {
-        toast.success(res.data.message)
-        setForm({ fullName: "", email: "", password: "", mobileNo: "", projectId: "" })
-        setIsLogin(true)
+      if (isLogin) {
+        const res = await axios.post('/api/member-login', {
+          email: formData.email,
+          password: formData.password,
+          projectId: formData.projectId
+        });
+        setSuccess(res.data.message);
       } else {
-        toast.error(res.data.message)
+        const res = await axios.post('/api/member-signup', formData);
+        setSuccess(res.data.message);
       }
     } catch (err) {
-      console.error(err)
-      toast.error(err?.response?.data?.message || "Registration failed")
+      setError(err.response?.data?.message || 'Something went wrong');
     }
-  }
-
-  const handleLogin = async () => {
-    if (!validate()) return
-    try {
-      const res = await axios.post("http://localhost:6087/api/member/member-login", form)
-      if (res.data.status) {
-        toast.success(res.data.message)
-        navigate("/dashboard", { state: { memberId: res.data.memberId, projectId: res.data.projectId } })
-      } else {
-        toast.error(res.data.message)
-      }
-    } catch (err) {
-      console.error(err)
-      toast.error(err?.response?.data?.message || "Login failed")
-    }
-  }
+  };
 
   return (
     <div className="authContainer">
-      <Toaster position="top-center" reverseOrder={false} />
       <div className="authCard">
-        <h1>Team Member Portal</h1>
+        <h1>{isLogin ? 'Login' : 'Sign Up'}</h1>
 
         <div className="toggle">
-          <button className={isLogin ? "active" : ""} onClick={() => setIsLogin(true)}>Login</button>
-          <button className={!isLogin ? "active" : ""} onClick={() => setIsLogin(false)}>Signup</button>
+          <button
+            className={isLogin ? 'active' : ''}
+            onClick={() => setIsLogin(true)}
+          >
+            Login
+          </button>
+          <button
+            className={!isLogin ? 'active' : ''}
+            onClick={() => setIsLogin(false)}
+          >
+            Sign Up
+          </button>
         </div>
 
-        <div className="formInputs">
+        <form className="formInputs" onSubmit={handleSubmit}>
           {!isLogin && (
             <>
               <input
                 type="text"
                 name="fullName"
                 placeholder="Full Name"
-                value={form.fullName}
+                value={formData.fullName}
                 onChange={handleChange}
+                required
               />
-              {errors.fullName && <span className="error">{errors.fullName}</span>}
-
-              <input
-                type="text"
-                name="projectId"
-                placeholder="Project ID"
-                value={form.projectId}
-                onChange={handleChange}
-              />
-              {errors.projectId && <span className="error">{errors.projectId}</span>}
-
               <input
                 type="text"
                 name="mobileNo"
                 placeholder="Mobile Number"
-                value={form.mobileNo}
+                value={formData.mobileNo}
                 onChange={handleChange}
               />
-              {errors.mobileNo && <span className="error">{errors.mobileNo}</span>}
             </>
           )}
 
@@ -117,24 +84,32 @@ export default function MemberAuth() {
             type="email"
             name="email"
             placeholder="Email"
-            value={form.email}
+            value={formData.email}
             onChange={handleChange}
+            required
           />
-          {errors.email && <span className="error">{errors.email}</span>}
-
           <input
             type="password"
             name="password"
             placeholder="Password"
-            value={form.password}
+            value={formData.password}
             onChange={handleChange}
+            required
           />
-          {errors.password && <span className="error">{errors.password}</span>}
+          <input
+            type="text"
+            name="projectId"
+            placeholder="Project ID"
+            value={formData.projectId}
+            onChange={handleChange}
+            required
+          />
 
-          <button onClick={isLogin ? handleLogin : handleRegister}>
-            {isLogin ? "Login" : "Register"}
-          </button>
-        </div>
+          {error && <div className="error">{error}</div>}
+          {success && <div style={{ color: '#4efc8d', marginBottom: '10px' }}>{success}</div>}
+
+          <button type="submit">{isLogin ? 'Login' : 'Sign Up'}</button>
+        </form>
       </div>
 
       <style>{`
@@ -226,5 +201,5 @@ export default function MemberAuth() {
         }
       `}</style>
     </div>
-  )
+  );
 }

@@ -8,7 +8,7 @@ export default function AdminDashboard() {
   const [adminEmail, setAdminEmail] = useState("");
   const [companies, setCompanies] = useState([]);
   const [projects, setProjects] = useState([]);
-  const [managers, setManagers] = useState({}); // key: projectId, value: manager object
+  const [managers, setManagers] = useState({});
   const [selectedProject, setSelectedProject] = useState(null);
   const [newProjectName, setNewProjectName] = useState("");
   const [newProjectDomain, setNewProjectDomain] = useState("");
@@ -16,7 +16,7 @@ export default function AdminDashboard() {
   const [loadingManager, setLoadingManager] = useState(false);
   const [activeSection, setActiveSection] = useState("overview");
 
-  // Load admin email and companies
+  // Load admin info
   useEffect(() => {
     if (!location.state?.adminEmail) {
       toast.error("Admin email missing. Please login again.");
@@ -36,7 +36,7 @@ export default function AdminDashboard() {
         filtered.forEach(c => fetchProjects(c.companyEmail));
       }
     } catch (err) {
-      console.log(err);
+      console.error(err);
       toast.error("Failed to fetch companies");
     }
   };
@@ -52,30 +52,31 @@ export default function AdminDashboard() {
         ]);
       }
     } catch (err) {
-      console.log(err);
+      console.error(err);
       toast.error("Failed to fetch projects");
     }
   };
 
+  // Fetch manager
   const fetchManager = async (projectId) => {
-  setLoadingManager(true);
-  try {
-    const res = await axios.get(`http://localhost:6087/api/admin/get-managers/${projectId}`);
-    if (res.data.status && res.data.manager) {
-      setManagers(prev => ({ ...prev, [projectId]: res.data.manager }));
-    } else {
+    setLoadingManager(true);
+    try {
+      const res = await axios.get(`http://localhost:6087/api/admin/get-managers/${projectId}`);
+      if (res.data.status && res.data.manager) {
+        setManagers(prev => ({ ...prev, [projectId]: res.data.manager }));
+      } else {
+        setManagers(prev => ({ ...prev, [projectId]: null }));
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to fetch manager");
       setManagers(prev => ({ ...prev, [projectId]: null }));
+    } finally {
+      setLoadingManager(false);
     }
-  } catch (err) {
-    console.log(err);
-    toast.error("Failed to fetch manager");
-    setManagers(prev => ({ ...prev, [projectId]: null }));
-  } finally {
-    setLoadingManager(false);
-  }
-};
+  };
 
-  // Add a manager
+  // Add manager
   const addManager = async () => {
     if (!newManagerEmail || !selectedProject) {
       return toast.error("Manager email and project selection are required!");
@@ -88,13 +89,36 @@ export default function AdminDashboard() {
       if (res.data.status) {
         toast.success(`Manager added! Token: ${res.data.registrationToken}`);
         setNewManagerEmail("");
-        fetchManager(selectedProject); // refresh manager for the project
-      } else {
-        toast.error(res.data.message);
-      }
+        fetchManager(selectedProject);
+      } else toast.error(res.data.message);
     } catch (err) {
-      console.log(err);
+      console.error(err);
       toast.error("Failed to add manager");
+    }
+  };
+
+  // ✅ Correct createProject aligned with backend
+  const createProject = async (companyEmail) => {
+    if (!newProjectName.trim() || !newProjectDomain.trim()) {
+      return toast.error("Project name and domain are required!");
+    }
+    try {
+      const payload = {
+        projectName: newProjectName.trim(),
+        domain: newProjectDomain.trim(),
+        companyEmail,
+        createdBy: adminEmail // send adminEmail as string
+      };
+      const res = await axios.post("http://localhost:6087/api/admin/add-project", payload);
+      if (res.data.status) {
+        toast.success("Project created successfully!");
+        setNewProjectName("");
+        setNewProjectDomain("");
+        fetchProjects(companyEmail); // refresh project list dynamically
+      } else toast.error(res.data.message || "Failed to create project");
+    } catch (err) {
+      console.error(err);
+      toast.error(err?.response?.data?.message || "Failed to create project");
     }
   };
 
@@ -116,7 +140,7 @@ export default function AdminDashboard() {
       </div>
 
       <div className="mainContent">
-        {/* Overview Section */}
+        {/* Project Overview */}
         {activeSection === "overview" && (
           <div>
             <h2>Project Overview</h2>
@@ -126,7 +150,7 @@ export default function AdminDashboard() {
                 <p><strong>Name:</strong> {p.projectName}</p>
                 <p><strong>ID:</strong> {p._id}</p>
                 <p><strong>Domain:</strong> {p.domain}</p>
-                <p><strong>Created By:</strong> {p.createdBy?.AdminName || p.createdBy?.Adminemail}</p>
+                <p><strong>Created By:</strong> {p.createdBy?.Adminemail || adminEmail}</p>
                 {managers[p._id] && (
                   <p><strong>Manager Email:</strong> {managers[p._id].email}</p>
                 )}
@@ -135,7 +159,7 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* Add Project Section */}
+        {/* Add Project */}
         {activeSection === "addProject" && (
           <div>
             <h2>Add Project</h2>
@@ -145,12 +169,14 @@ export default function AdminDashboard() {
                 <h3>{c.companyName}</h3>
                 <input
                   type="text"
+                  name="projectName"
                   placeholder="Project Name"
                   value={newProjectName}
                   onChange={(e) => setNewProjectName(e.target.value)}
                 />
                 <input
                   type="text"
+                  name="domain"
                   placeholder="Project Domain"
                   value={newProjectDomain}
                   onChange={(e) => setNewProjectDomain(e.target.value)}
@@ -161,7 +187,7 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* Manage Managers Section */}
+        {/* Manage Managers */}
         {activeSection === "manageManagers" && (
           <div>
             <h2>Manage Project Managers</h2>

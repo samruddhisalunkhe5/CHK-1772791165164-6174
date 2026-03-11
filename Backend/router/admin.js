@@ -111,7 +111,6 @@ function generateRandomString(length = 8) {
     .join('');
 }
 
-// Add Project
 router.post("/add-project", async (req, res) => {
   try {
     const { projectName, companyEmail, domain, createdBy } = req.body;
@@ -120,11 +119,11 @@ router.post("/add-project", async (req, res) => {
       return res.status(400).json({ status: false, message: "All fields are required" });
     }
 
-    // Get Admin ObjectId from email
+  
     const admin = await Admin.findOne({ Adminemail: createdBy });
     if (!admin) return res.status(400).json({ status: false, message: "Admin not found" });
 
-    // Generate unique projectId
+
     let projectId = generateRandomString(8);
     while (await Project.findOne({ projectId })) {
       projectId = generateRandomString(8);
@@ -166,42 +165,40 @@ router.post('/admin-add-manager', async (req, res) => {
   try {
 
     const { email, projectId } = req.body
-
     const registrationToken = Math.random().toString(36).substring(2, 10).toUpperCase()
-
     const manager = new Manager({
       email,
       projectId: new mongoose.Types.ObjectId(projectId), 
       registrationToken
     })
-
     await manager.save()
-
     res.json({
       status: true,
       message: 'Manager slot created',
       registrationToken 
     })
-
   } catch (err) {
     console.log(err)
     res.status(500).json({ status: false, message: 'Internal Server Error' })
   }
 })
 
-
-router.get('/get-managers', async (req, res) => {
+router.get('/get-managers/:projectId', async (req, res) => {
   try {
+    const { projectId } = req.params;
+    const { token } = req.query;
 
-    const managers = await Manager.find().populate('projectId', 'projectName')    
+    const filter = { projectId: new mongoose.Types.ObjectId(projectId) }; // <-- fixed
+    if (token) {
+      filter.registrationToken = token;
+    }
 
-    res.json({ status: true, managers })
+    const manager = await Manager.findOne(filter).populate('projectId', 'projectName');
 
+    res.json({ status: true, manager: manager || null });
   } catch (err) {
-    console.log(err)
-    res.status(500).json({ status: false, message: 'Internal Server Error' })
+    console.log(err);
+    res.status(500).json({ status: false, message: 'Internal Server Error' });
   }
 })
-  
-
 export default router

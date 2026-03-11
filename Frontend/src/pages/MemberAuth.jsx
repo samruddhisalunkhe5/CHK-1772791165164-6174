@@ -1,87 +1,80 @@
-import React, { useState } from "react";
-import axios from "axios";
-import toast, { Toaster } from "react-hot-toast";
-import { useNavigate } from "react-router-dom";
+import React, { useState } from "react"
+import axios from "axios"
+import toast, { Toaster } from "react-hot-toast"
+import { useNavigate } from "react-router-dom"
 
-export default function ManagerAuth() {
-  const navigate = useNavigate();
-  const [isLogin, setIsLogin] = useState(true);
+export default function MemberAuth() {
+  const navigate = useNavigate()
+  const [isLogin, setIsLogin] = useState(true)
   const [form, setForm] = useState({
     fullName: "",
     email: "",
     password: "",
+    mobileNo: "",
     projectId: "",
-    registrationToken: ""
-  });
-  const [errors, setErrors] = useState({});
+  })
+  const [errors, setErrors] = useState({})
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
+    setForm({ ...form, [e.target.name]: e.target.value })
+  }
 
   const validate = () => {
-    const newErrors = {};
+    const newErrors = {}
+    if (!form.email) newErrors.email = "Email is required"
+    else if (!/\S+@\S+\.\S+/.test(form.email)) newErrors.email = "Email is invalid"
 
-    if (!form.email) newErrors.email = "Email is required";
-    else if (!/\S+@\S+\.\S+/.test(form.email)) newErrors.email = "Email is invalid";
-
-    if (!form.password) newErrors.password = "Password is required";
-    else if (form.password.length < 6) newErrors.password = "Password must be at least 6 characters";
+    if (!form.password) newErrors.password = "Password is required"
+    else if (form.password.length < 6) newErrors.password = "Password must be at least 6 characters"
 
     if (!isLogin) {
-      if (!form.fullName) newErrors.fullName = "Full name is required";
-      if (!form.projectId) newErrors.projectId = "Project ID is required";
-      if (!form.registrationToken) newErrors.registrationToken = "Registration token is required";
+      if (!form.fullName) newErrors.fullName = "Full name is required"
+      if (!form.projectId) newErrors.projectId = "Project ID is required"
+      if (!form.mobileNo) newErrors.mobileNo = "Mobile number is required"
     }
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
 
   const handleRegister = async () => {
-    if (!validate()) return;
+    if (!validate()) return
     try {
-      const res = await axios.post("http://localhost:6087/api/manager/register-manager", form);
+      const res = await axios.post("http://localhost:6087/api/member/member-signup", form)
       if (res.data.status) {
-        toast.success(res.data.message);
-        setForm({ fullName: "", email: "", password: "", projectId: "", registrationToken: "" });
-        setIsLogin(true);
+        toast.success(res.data.message)
+        setForm({ fullName: "", email: "", password: "", mobileNo: "", projectId: "" })
+        setIsLogin(true)
       } else {
-        toast.error(res.data.message);
+        toast.error(res.data.message)
       }
     } catch (err) {
-      console.error(err);
-      toast.error(err?.response?.data?.message || "Registration failed");
+      console.error(err)
+      toast.error(err?.response?.data?.message || "Registration failed")
     }
-  };
+  }
 
   const handleLogin = async () => {
-    if (!validate()) return;
+    if (!validate()) return
     try {
-      const res = await axios.post("http://localhost:6087/api/manager/login-manager", form);
+      const res = await axios.post("http://localhost:6087/api/member/member-login", form)
       if (res.data.status) {
-        toast.success(res.data.message);
-        navigate("/manager-dashboard", {
-          state: {
-            managerEmail: form.email,
-            projectId: form.projectId,
-            registrationToken: form.registrationToken
-          }
-        });
+        toast.success(res.data.message)
+        navigate("/dashboard", { state: { memberId: res.data.memberId, projectId: res.data.projectId } })
       } else {
-        toast.error(res.data.message);
+        toast.error(res.data.message)
       }
     } catch (err) {
-      console.error(err);
-      toast.error(err?.response?.data?.message || "Login failed");
+      console.error(err)
+      toast.error(err?.response?.data?.message || "Login failed")
     }
-  };
+  }
 
   return (
     <div className="authContainer">
       <Toaster position="top-center" reverseOrder={false} />
       <div className="authCard">
-        <h1>Manager Portal</h1>
+        <h1>Team Member Portal</h1>
 
         <div className="toggle">
           <button className={isLogin ? "active" : ""} onClick={() => setIsLogin(true)}>Login</button>
@@ -111,12 +104,12 @@ export default function ManagerAuth() {
 
               <input
                 type="text"
-                name="registrationToken"
-                placeholder="Registration Token"
-                value={form.registrationToken}
+                name="mobileNo"
+                placeholder="Mobile Number"
+                value={form.mobileNo}
                 onChange={handleChange}
               />
-              {errors.registrationToken && <span className="error">{errors.registrationToken}</span>}
+              {errors.mobileNo && <span className="error">{errors.mobileNo}</span>}
             </>
           )}
 
@@ -233,5 +226,5 @@ export default function ManagerAuth() {
         }
       `}</style>
     </div>
-  );
+  )
 }

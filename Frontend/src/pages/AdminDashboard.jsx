@@ -8,14 +8,15 @@ export default function AdminDashboard() {
   const [adminEmail, setAdminEmail] = useState("");
   const [companies, setCompanies] = useState([]);
   const [projects, setProjects] = useState([]);
-  const [managers, setManagers] = useState([]);
+  const [managers, setManagers] = useState({}); // key: projectId, value: manager object
   const [selectedProject, setSelectedProject] = useState(null);
-
   const [newProjectName, setNewProjectName] = useState("");
   const [newProjectDomain, setNewProjectDomain] = useState("");
   const [newManagerEmail, setNewManagerEmail] = useState("");
+  const [loadingManager, setLoadingManager] = useState(false);
   const [activeSection, setActiveSection] = useState("overview");
 
+  // Load admin email and companies
   useEffect(() => {
     if (!location.state?.adminEmail) {
       toast.error("Admin email missing. Please login again.");
@@ -25,14 +26,13 @@ export default function AdminDashboard() {
     }
   }, [location.state]);
 
+  // Fetch companies
   const fetchCompanies = async (email) => {
     try {
       const res = await axios.get("http://localhost:6087/api/admin/get-companies");
       if (res.data.status) {
         const filtered = res.data.companies.filter(c => c.adminEmail === email);
         setCompanies(filtered);
-
-        // Optionally fetch projects for all companies on load
         filtered.forEach(c => fetchProjects(c.companyEmail));
       }
     } catch (err) {
@@ -41,11 +41,15 @@ export default function AdminDashboard() {
     }
   };
 
+  // Fetch projects
   const fetchProjects = async (companyEmail) => {
     try {
       const res = await axios.get("http://localhost:6087/api/admin/get-projects");
       if (res.data.status) {
-        setProjects(res.data.projects.filter(p => p.companyEmail === companyEmail));
+        setProjects(prev => [
+          ...prev.filter(p => p.companyEmail !== companyEmail),
+          ...res.data.projects.filter(p => p.companyEmail === companyEmail)
+        ]);
       }
     } catch (err) {
       console.log(err);
@@ -53,56 +57,38 @@ export default function AdminDashboard() {
     }
   };
 
-  const fetchManagers = async (projectId) => {
-    try {
-      const res = await axios.get("http://localhost:6087/api/get-managers");
-      if (res.data.status) {
-        setManagers(res.data.managers.filter(m => m.projectId._id === projectId));
-      }
-    } catch (err) {
-      console.log(err);
-      toast.error("Failed to fetch managers");
+  const fetchManager = async (projectId) => {
+  setLoadingManager(true);
+  try {
+    const res = await axios.get(`http://localhost:6087/api/admin/get-managers/${projectId}`);
+    if (res.data.status && res.data.manager) {
+      setManagers(prev => ({ ...prev, [projectId]: res.data.manager }));
+    } else {
+      setManagers(prev => ({ ...prev, [projectId]: null }));
     }
-  };
+  } catch (err) {
+    console.log(err);
+    toast.error("Failed to fetch manager");
+    setManagers(prev => ({ ...prev, [projectId]: null }));
+  } finally {
+    setLoadingManager(false);
+  }
+};
 
-  const createProject = async (companyEmail) => {
-    if (!newProjectName || !newProjectDomain || !companyEmail || !adminEmail) {
-      return toast.error("All project fields are required!");
-    }
-    try {
-      const res = await axios.post("http://localhost:6087/api/admin/add-project", {
-        projectName: newProjectName,
-        companyEmail,
-        domain: newProjectDomain,
-        createdBy: adminEmail // email string
-      });
-      if (res.data.status) {
-        toast.success(`Project created! ID: ${res.data.projectId}`);
-        setNewProjectName("");
-        setNewProjectDomain("");
-        fetchProjects(companyEmail);
-      } else {
-        toast.error(res.data.message);
-      }
-    } catch (err) {
-      console.log("Frontend Create Project Error:", err.response?.data || err);
-      toast.error("Failed to create project");
-    }
-  };
-
-  const addManager = async (projectId) => {
-    if (!newManagerEmail || !projectId) {
+  // Add a manager
+  const addManager = async () => {
+    if (!newManagerEmail || !selectedProject) {
       return toast.error("Manager email and project selection are required!");
     }
     try {
       const res = await axios.post("http://localhost:6087/api/admin/admin-add-manager", {
         email: newManagerEmail,
-        projectId
+        projectId: selectedProject
       });
       if (res.data.status) {
         toast.success(`Manager added! Token: ${res.data.registrationToken}`);
         setNewManagerEmail("");
-        fetchManagers(projectId);
+        fetchManager(selectedProject); // refresh manager for the project
       } else {
         toast.error(res.data.message);
       }
@@ -110,6 +96,11 @@ export default function AdminDashboard() {
       console.log(err);
       toast.error("Failed to add manager");
     }
+  };
+
+  const copyToken = (token) => {
+    navigator.clipboard.writeText(token);
+    toast.success("Token copied to clipboard!");
   };
 
   return (
@@ -124,8 +115,8 @@ export default function AdminDashboard() {
         <button onClick={() => setActiveSection("manageManagers")}>Manage Managers</button>
       </div>
 
-      {/* Main Content */}
       <div className="mainContent">
+        {/* Overview Section */}
         {activeSection === "overview" && (
           <div>
             <h2>Project Overview</h2>
@@ -133,14 +124,18 @@ export default function AdminDashboard() {
             {projects.map(p => (
               <div key={p._id} className="projectCard">
                 <p><strong>Name:</strong> {p.projectName}</p>
-                <p><strong>ID:</strong> {p.projectId}</p>
+                <p><strong>ID:</strong> {p._id}</p>
                 <p><strong>Domain:</strong> {p.domain}</p>
                 <p><strong>Created By:</strong> {p.createdBy?.AdminName || p.createdBy?.Adminemail}</p>
+                {managers[p._id] && (
+                  <p><strong>Manager Email:</strong> {managers[p._id].email}</p>
+                )}
               </div>
             ))}
           </div>
         )}
 
+        {/* Add Project Section */}
         {activeSection === "addProject" && (
           <div>
             <h2>Add Project</h2>
@@ -166,6 +161,7 @@ export default function AdminDashboard() {
           </div>
         )}
 
+        {/* Manage Managers Section */}
         {activeSection === "manageManagers" && (
           <div>
             <h2>Manage Project Managers</h2>
@@ -173,30 +169,43 @@ export default function AdminDashboard() {
             {projects.map(p => (
               <div key={p._id} className="projectCard">
                 <p><strong>Project:</strong> {p.projectName}</p>
-                <p><strong>ID:</strong> {p.projectId}</p>
-                <button onClick={() => { setSelectedProject(p._id); fetchManagers(p._id); }}>Select Project</button>
+                <p><strong>ID:</strong> {p._id}</p>
+                <button
+                  onClick={() => {
+                    setSelectedProject(p._id);
+                    fetchManager(p._id);
+                  }}
+                >
+                  Select Project
+                </button>
               </div>
             ))}
 
             {selectedProject && (
               <div className="managerSection">
-                <h3>Managers for selected project</h3>
+                <h3>Manager for selected project</h3>
                 <input
                   type="email"
                   placeholder="Manager Email"
                   value={newManagerEmail}
                   onChange={(e) => setNewManagerEmail(e.target.value)}
                 />
-                <button onClick={() => addManager(selectedProject)}>Add Manager</button>
+                <button onClick={addManager}>Add Manager</button>
 
-                {managers.length === 0 && <p className="noData">No managers assigned yet</p>}
-                {managers.map(m => (
-                  <div key={m._id} className="managerCard">
-                    <p><strong>Email:</strong> {m.email}</p>
-                    <p><strong>Project ID:</strong> {m.projectId._id}</p>
-                    <p><strong>Registration Token:</strong> {m.registrationToken}</p>
+                {loadingManager ? (
+                  <p>Loading manager...</p>
+                ) : !managers[selectedProject] ? (
+                  <p className="noData">No manager assigned yet</p>
+                ) : (
+                  <div className="managerCard">
+                    <p><strong>Email:</strong> {managers[selectedProject].email}</p>
+                    <p><strong>Project ID:</strong> {managers[selectedProject].projectId._id}</p>
+                    <p>
+                      <strong>Token:</strong> {managers[selectedProject].registrationToken}
+                      <button onClick={() => copyToken(managers[selectedProject].registrationToken)}>Copy</button>
+                    </p>
                   </div>
-                ))}
+                )}
               </div>
             )}
           </div>
@@ -213,6 +222,7 @@ export default function AdminDashboard() {
         .companyCard, .projectCard, .managerCard { background:rgba(255,255,255,0.1); padding:15px; border-radius:12px; margin-bottom:15px; box-shadow:0 5px 15px rgba(0,0,0,0.3); }
         .companyCard input, .managerCard input { width:100%; padding:8px; margin:8px 0; border-radius:8px; border:none; outline:none; }
         .companyCard button, .projectCard button, .managerCard button { padding:8px 12px; border:none; border-radius:8px; cursor:pointer; background:linear-gradient(135deg,#4facfe,#b721ff); color:white; font-weight:bold; margin-top:5px; }
+        .managerCard button { margin-left:10px; padding:4px 8px; font-size:12px; }
         .noData { font-style:italic; color:rgba(255,255,255,0.7); margin-bottom:10px; }
       `}</style>
     </div>
